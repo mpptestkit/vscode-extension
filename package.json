@@ -1,0 +1,52 @@
+{
+  "name": "mpp-payment-hints",
+  "displayName": "MPP Payment Flow Hints",
+  "description": "Inline hints for the HTTP 402 payment flow in MPP TestKit code",
+  "version": "0.1.0",
+  "publisher": "mpptestkit",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mpptestkit/mpptestkit"
+  },
+  "homepage": "https://mpptestkit.com",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Other"],
+  "keywords": ["mpp", "solana", "http402", "payments", "hints"],
+  "activationEvents": [
+    "onLanguage:typescript",
+    "onLanguage:javascript",
+    "onLanguage:typescriptreact",
+    "onLanguage:javascriptreact"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "MPP Payment Hints",
+      "properties": {
+        "mpp.hints.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show inline payment flow hints in TypeScript/JavaScript files."
+        },
+        "mpp.hints.showOnAllFiles": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show hints in all JS/TS files, not only those that import mpp-test-sdk."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p tsconfig.json",
+    "watch": "tsc -watch -p tsconfig.json",
+    "package": "vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.75.0",
+    "typescript": "^5.4.0"
+  }
+}
