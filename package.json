@@ -14,12 +14,15 @@
     "vscode": "^1.75.0"
   },
   "categories": ["Other"],
-  "keywords": ["mpp", "solana", "http402", "payments", "hints"],
+  "keywords": ["mpp", "solana", "base", "http402", "payments", "hints"],
   "activationEvents": [
     "onLanguage:typescript",
     "onLanguage:javascript",
     "onLanguage:typescriptreact",
-    "onLanguage:javascriptreact"
+    "onLanguage:javascriptreact",
+    "onLanguage:python",
+    "onLanguage:go",
+    "onLanguage:rust"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -29,12 +32,12 @@
         "mpp.hints.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Show inline payment flow hints in TypeScript/JavaScript files."
+          "description": "Show inline payment flow hints in MPP SDK source files."
         },
         "mpp.hints.showOnAllFiles": {
           "type": "boolean",
           "default": false,
-          "description": "Show hints in all JS/TS files, not only those that import mpp-test-sdk."
+          "description": "Show hints in all supported files, not only those that import an MPP SDK."
         }
       }
     }

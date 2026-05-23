@@ -4,7 +4,7 @@ Inline hints for the HTTP 402 payment flow in [MPP TestKit](https://mpptestkit.c
 
 ## What it does
 
-Shows small inline labels next to every MPP SDK call so you can see the payment flow at a glance — without leaving the editor.
+Shows small inline labels next to every MPP SDK call so you can see the payment flow at a glance - without leaving the editor.
 
 ```ts
 const res = await mppFetch( ⬡ 402 flow: wallet → pay → retry  "http://localhost:3001/api/data");

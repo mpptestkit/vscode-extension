@@ -18,37 +18,72 @@ function extractChargeAmount(text: string, offset: number): string {
 }
 
 /**
+ * Detect `chain: "base"` or `chain: 'base'` near a call (within 400 chars before `(`).
+ */
+function isBaseChainContext(text: string, callIndex: number): boolean {
+  const before = text.slice(Math.max(0, callIndex - 400), callIndex);
+  return /chain\s*:\s*["']base["']/.test(before);
+}
+
+function currencyForContext(text: string, callIndex: number): "SOL" | "ETH" {
+  return isBaseChainContext(text, callIndex) ? "ETH" : "SOL";
+}
+
+/** True when the file imports an MPP SDK (TS, Python, Go, or Rust). */
+function importsMppSdk(text: string): boolean {
+  return (
+    text.includes("mpp-test-sdk") ||
+    text.includes("mpp_test_sdk") ||
+    text.includes("mpp-test-sdk-go") ||
+    text.includes("mpp_test_sdk::") ||
+    /\bimport\s+mpp\b/.test(text) ||
+    /\bfrom\s+mpp\b/.test(text)
+  );
+}
+
+/**
  * Each entry matches a specific MPP SDK call site and returns the
  * hint label to display right after the opening parenthesis.
  */
 const PATTERNS: Pattern[] = [
   {
-    // mppFetch("url") or mppFetch("url", init)
-    regex: /\bmppFetch\s*\(/g,
-    getLabel: () => "⬡ 402 flow: wallet → pay → retry",
+    regex: /\bmppFetch\s*\(|\bmpp_fetch\s*\(/g,
+    getLabel: (match, text) => {
+      const cur = currencyForContext(text, match.index);
+      if (cur === "ETH") return "⬡ 402 flow: wallet → ETH pay → retry";
+      return "⬡ 402 flow: wallet → pay → retry";
+    },
   },
   {
-    // createTestClient() or createTestClient({ ... })
-    regex: /\bcreateTestClient\s*\(/g,
-    getLabel: () => "⬡ auto-wallet · airdrop",
+    regex: /\bcreateTestClient\s*\(|\bcreate_test_client\s*\(|\bCreateTestClient\s*\(/g,
+    getLabel: (match, text) => {
+      if (isBaseChainContext(text, match.index)) {
+        return "⬡ Base wallet · fund via faucet";
+      }
+      return "⬡ auto-wallet · airdrop";
+    },
   },
   {
-    // client.fetch("url") — the TestClient method
     regex: /\bclient\.fetch\s*\(/g,
     getLabel: () => "⬡ handles 402 automatically",
   },
   {
-    // mpp.charge({ amount: "0.001" }) — extract amount when available
-    regex: /\.charge\s*\(/g,
+    regex: /\.charge\s*\(|\bflask_charge\s*\(|\bfastapi_charge\s*\(/g,
     getLabel: (match, text) => {
       const amount = extractChargeAmount(text, match.index + match[0].length);
-      return amount ? `⬡ ${amount} SOL per request` : "⬡ SOL payment required";
+      const cur = currencyForContext(text, match.index);
+      if (amount) return `⬡ ${amount} ${cur} per request`;
+      return cur === "ETH" ? "⬡ ETH payment required" : "⬡ SOL payment required";
     },
   },
   {
-    // createTestServer() — server setup
-    regex: /\bcreateTestServer\s*\(/g,
-    getLabel: () => "⬡ auto-recipient wallet",
+    regex: /\bcreateTestServer\s*\(|\bcreate_test_server\s*\(|\bCreateTestServer\s*\(/g,
+    getLabel: (match, text) => {
+      if (isBaseChainContext(text, match.index)) {
+        return "⬡ Base recipient (0x)";
+      }
+      return "⬡ auto-recipient wallet";
+    },
   },
 ];
 
@@ -67,9 +102,8 @@ class MppInlayHintsProvider implements vscode.InlayHintsProvider {
 
     const text = document.getText();
 
-    // Skip files that don't import mpp-test-sdk unless the user opted in
     const showOnAll = config.get<boolean>("hints.showOnAllFiles", false);
-    if (!showOnAll && !text.includes("mpp-test-sdk")) {
+    if (!showOnAll && !importsMppSdk(text)) {
       return [];
     }
 
@@ -80,10 +114,8 @@ class MppInlayHintsProvider implements vscode.InlayHintsProvider {
       let match: RegExpExecArray | null;
 
       while ((match = pattern.regex.exec(text)) !== null) {
-        // Place hint right after the opening "(" of the call
         const hintPos = document.positionAt(match.index + match[0].length);
 
-        // Only emit hints inside the requested viewport range
         if (hintPos.isBefore(range.start) || hintPos.isAfter(range.end)) {
           continue;
         }
@@ -111,6 +143,9 @@ export function activate(context: vscode.ExtensionContext): void {
     { language: "javascript" },
     { language: "typescriptreact" },
     { language: "javascriptreact" },
+    { language: "python" },
+    { language: "go" },
+    { language: "rust" },
   ];
 
   context.subscriptions.push(
